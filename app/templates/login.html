@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LinkedIn Relationship Intelligence</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <h1>LinkedIn Relationship Intelligence</h1>
+                <p>Enter your name to access your dashboard</p>
+            </div>
+            <!--ERROR-->
+            <form method="POST" action="/enter" class="auth-form">
+                <div class="form-group">
+                    <label for="name">Your Name</label>
+                    <input type="text" id="name" name="name" required placeholder="Enter your name" autocomplete="name" autofocus>
+                </div>
+                <button type="submit" class="btn btn-primary auth-btn">Continue</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
