@@ -73,7 +73,7 @@ async function loadPosts() {
         if (posts.length === 0) {
             container.innerHTML = `
                 <div class="empty-state">
-                    <h3>No posts yet</h3>
+                    <h3>No posts in the last 24 hours</h3>
                     <p>Posts will appear here after the daily job runs or you trigger it manually.</p>
                 </div>`;
             return;
