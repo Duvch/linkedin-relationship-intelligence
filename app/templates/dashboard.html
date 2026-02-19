@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LinkedIn Relationship Intelligence</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-row">
+                <div>
+                    <h1>LinkedIn Relationship Intelligence</h1>
+                    <p class="subtitle">Internal tool for tracking LinkedIn profiles and generating relationship insights</p>
+                </div>
+                <div class="user-menu">
+                    <span class="user-greeting" id="user-greeting"></span>
+                    <a href="/switch-user" class="btn btn-secondary btn-sm">Switch User</a>
+                </div>
+            </div>
+        </header>
+
+        <div class="tabs">
+            <button class="tab active" data-tab="profiles">Profiles</button>
+            <button class="tab" data-tab="posts">Posts</button>
+            <button class="tab" data-tab="notifications">Notifications <span id="notif-badge" class="notif-badge" style="display:none;">0</span></button>
+            <button class="tab" data-tab="actions">Actions</button>
+        </div>
+
+        <div id="profiles" class="tab-content active">
+            <div class="section-header">
+                <h2>Tracked Profiles</h2>
+                <div class="section-actions">
+                    <button class="btn btn-secondary" onclick="showCsvUploadModal()">Upload CSV</button>
+                    <button class="btn btn-primary" onclick="showAddProfileModal()">+ Add Profile</button>
+                </div>
+            </div>
+            <div id="profiles-list" class="card-grid">
+                <p class="loading">Loading profiles...</p>
+            </div>
+        </div>
+
+        <div id="posts" class="tab-content">
+            <div class="section-header">
+                <h2>Recent Posts</h2>
+            </div>
+            <div id="posts-list" class="posts-grid">
+                <p class="loading">Loading posts...</p>
+            </div>
+        </div>
+
+        <div id="notifications" class="tab-content">
+            <div class="section-header">
+                <h2>Notifications</h2>
+                <button class="btn btn-secondary" onclick="markAllRead()">Mark All Read</button>
+            </div>
+            <div id="notifications-list" class="posts-grid">
+                <p class="loading">Loading notifications...</p>
+            </div>
+        </div>
+
+        <div id="actions" class="tab-content">
+            <div class="section-header">
+                <h2>Settings & Actions</h2>
+            </div>
+            <div class="actions-panel">
+                <div class="action-card" style="grid-column: 1/-1;">
+                    <h3>LinkedIn Data API</h3>
+                    <p>LinkedIn posts are fetched using the Fresh LinkedIn Scraper API via RapidAPI. The API key is configured as an environment secret.</p>
+                    <div style="display:flex; gap:10px; align-items:center;">
+                        <div id="linkedin-status" class="status-msg"></div>
+                    </div>
+                </div>
+                <div class="action-card" style="grid-column: 1/-1;">
+                    <h3>Email Notifications <span class="optional">(optional)</span></h3>
+                    <p>Set up email to also receive digests in your inbox. If not configured, notifications will only appear in the dashboard above.</p>
+                    <form id="email-settings-form" onsubmit="saveEmailSettings(event)">
+                        <div class="form-group">
+                            <label for="notify_email">Send Digest To (your email)</label>
+                            <input type="email" id="notify_email" placeholder="you@example.com">
+                        </div>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                            <div class="form-group">
+                                <label for="smtp_user">SMTP Username (sending email)</label>
+                                <input type="email" id="smtp_user" placeholder="sender@gmail.com">
+                            </div>
+                            <div class="form-group">
+                                <label for="smtp_password">SMTP Password / App Password</label>
+                                <input type="password" id="smtp_password" placeholder="Enter app password">
+                            </div>
+                        </div>
+                        <div style="display:grid; grid-template-columns:2fr 1fr; gap:12px;">
+                            <div class="form-group">
+                                <label for="smtp_host">SMTP Host</label>
+                                <input type="text" id="smtp_host" value="smtp.gmail.com" placeholder="smtp.gmail.com">
+                            </div>
+                            <div class="form-group">
+                                <label for="smtp_port">SMTP Port</label>
+                                <input type="text" id="smtp_port" value="587" placeholder="587">
+                            </div>
+                        </div>
+                        <div style="display:flex; gap:10px; align-items:center;">
+                            <button type="submit" class="btn btn-primary">Save Email Settings</button>
+                            <div id="email-status" class="status-msg"></div>
+                        </div>
+                    </form>
+                </div>
+                <div class="action-card">
+                    <h3>Trigger Daily Job</h3>
+                    <p>Manually run the daily LinkedIn intelligence job. This will fetch new posts, analyze them with AI, and send notifications.</p>
+                    <button class="btn btn-primary" id="trigger-btn" onclick="triggerJob()">Run Daily Job</button>
+                    <div id="job-status" class="status-msg"></div>
+                </div>
+                <div class="action-card">
+                    <h3>System Health</h3>
+                    <p>Check if the application and all services are running properly.</p>
+                    <button class="btn btn-secondary" onclick="checkHealth()">Check Health</button>
+                    <div id="health-status" class="status-msg"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-overlay" class="modal-overlay" onclick="closeModal(event)">
+        <div class="modal" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3>Add LinkedIn Profile</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <form id="add-profile-form" onsubmit="addProfile(event)">
+                <div class="form-group">
+                    <label for="name">Name</label>
+                    <input type="text" id="name" required placeholder="e.g. Jane Doe">
+                </div>
+                <div class="form-group">
+                    <label for="linkedin_url">LinkedIn URL</label>
+                    <input type="url" id="linkedin_url" required placeholder="https://linkedin.com/in/janedoe">
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Profile</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="csv-modal-overlay" class="modal-overlay" onclick="closeCsvModal(event)">
+        <div class="modal" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3>Upload CSV</h3>
+                <button class="modal-close" onclick="closeCsvModal()">&times;</button>
+            </div>
+            <div class="csv-upload-info">
+                <p>Upload a CSV file with LinkedIn profiles to import in bulk.</p>
+                <div class="csv-format-hint">
+                    <strong>Required columns:</strong> name, linkedin_url
+                </div>
+                <div class="csv-example">
+                    <strong>Example CSV:</strong>
+                    <pre>name,linkedin_url
+Jane Doe,https://linkedin.com/in/janedoe
+John Smith,https://linkedin.com/in/johnsmith</pre>
+                </div>
+            </div>
+            <form id="csv-upload-form" onsubmit="uploadCsv(event)">
+                <div class="form-group">
+                    <label for="csv_file">Select CSV File</label>
+                    <input type="file" id="csv_file" accept=".csv" required class="file-input">
+                </div>
+                <div id="csv-upload-status" class="status-msg"></div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeCsvModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="csv-upload-btn">Upload & Import</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script src="/static/app.js?v=2"></script>
+</body>
+</html>
