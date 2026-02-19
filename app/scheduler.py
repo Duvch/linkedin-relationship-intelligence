@@ -1,6 +1,7 @@
 import asyncio
 import hashlib
 import logging
+from datetime import datetime, timedelta
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from sqlalchemy import or_
@@ -67,8 +68,14 @@ async def _daily_job(user_id: int = None):
                 continue
 
             posts = await get_recent_posts(profile.linkedin_url)
+            cutoff = datetime.utcnow() - timedelta(hours=24)
 
             for post_data in posts:
+                post_ts = post_data.get("post_timestamp")
+                if post_ts and post_ts < cutoff:
+                    logger.debug(f"Skipping old post for {profile.name} (posted {post_ts})")
+                    continue
+
                 post_text = post_data["post_text"]
                 post_url = post_data["post_url"]
                 content_hash = hashlib.sha256(
