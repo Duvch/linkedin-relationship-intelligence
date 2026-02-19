@@ -112,22 +112,58 @@ async def get_recent_posts(linkedin_url: str) -> list[dict]:
                 author_url = author_data.get("url", "")
 
             post_time = None
-            created = item.get("created", {})
-            if isinstance(created, dict):
-                created_date = created.get("date", "") or created.get("time", "")
-                if created_date:
-                    if isinstance(created_date, (int, float)):
+            logger.debug(f"Post keys: {list(item.keys())}")
+            created_val = item.get("created")
+            if created_val is not None:
+                if isinstance(created_val, (int, float)):
+                    try:
+                        if created_val > 1e12:
+                            post_time = datetime.utcfromtimestamp(created_val / 1000)
+                        else:
+                            post_time = datetime.utcfromtimestamp(created_val)
+                    except (ValueError, OSError):
+                        pass
+                elif isinstance(created_val, str):
+                    for fmt in ["%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d"]:
                         try:
-                            if created_date > 1e12:
-                                post_time = datetime.utcfromtimestamp(created_date / 1000)
+                            post_time = datetime.strptime(created_val.split(".")[0].split("Z")[0], fmt)
+                            break
+                        except ValueError:
+                            continue
+                elif isinstance(created_val, dict):
+                    created_date = created_val.get("date", "") or created_val.get("time", "") or created_val.get("timestamp", "")
+                    if created_date:
+                        if isinstance(created_date, (int, float)):
+                            try:
+                                if created_date > 1e12:
+                                    post_time = datetime.utcfromtimestamp(created_date / 1000)
+                                else:
+                                    post_time = datetime.utcfromtimestamp(created_date)
+                            except (ValueError, OSError):
+                                pass
+                        elif isinstance(created_date, str):
+                            for fmt in ["%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d"]:
+                                try:
+                                    post_time = datetime.strptime(created_date.split(".")[0].split("Z")[0], fmt)
+                                    break
+                                except ValueError:
+                                    continue
+
+            if post_time is None:
+                ts = item.get("postedAt") or item.get("posted_at") or item.get("publishedAt") or item.get("date") or item.get("timestamp")
+                if ts is not None:
+                    if isinstance(ts, (int, float)):
+                        try:
+                            if ts > 1e12:
+                                post_time = datetime.utcfromtimestamp(ts / 1000)
                             else:
-                                post_time = datetime.utcfromtimestamp(created_date)
+                                post_time = datetime.utcfromtimestamp(ts)
                         except (ValueError, OSError):
                             pass
-                    elif isinstance(created_date, str):
+                    elif isinstance(ts, str):
                         for fmt in ["%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d"]:
                             try:
-                                post_time = datetime.strptime(created_date.split(".")[0].split("Z")[0], fmt)
+                                post_time = datetime.strptime(ts.split(".")[0].split("Z")[0], fmt)
                                 break
                             except ValueError:
                                 continue
