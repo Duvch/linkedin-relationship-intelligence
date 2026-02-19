@@ -2,13 +2,15 @@ import os
 import logging
 from pathlib import Path
 from contextlib import asynccontextmanager
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from dotenv import load_dotenv
 load_dotenv()
 
 import csv
 import io
+
+from sqlalchemy import or_, and_
 
 from fastapi import FastAPI, Depends, HTTPException, Request, Form, UploadFile, File
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
@@ -298,7 +300,14 @@ def get_profile_posts(profile_id: int, request: Request, db: Session = Depends(g
     profile = db.query(Profile).filter(Profile.id == profile_id, Profile.user_id == user.id).first()
     if not profile:
         raise HTTPException(status_code=404, detail="Profile not found.")
-    return db.query(Post).filter(Post.profile_id == profile_id).order_by(Post.created_at.desc()).all()
+    cutoff = datetime.utcnow() - timedelta(hours=24)
+    return db.query(Post).filter(
+        Post.profile_id == profile_id,
+        or_(
+            Post.post_timestamp >= cutoff,
+            and_(Post.post_timestamp.is_(None), Post.created_at >= cutoff)
+        )
+    ).order_by(Post.created_at.desc()).all()
 
 
 @app.get("/posts", response_model=list[PostResponse])
@@ -307,7 +316,14 @@ def list_all_posts(request: Request, limit: int = 50, db: Session = Depends(get_
     user_profile_ids = [p.id for p in db.query(Profile).filter(Profile.user_id == user.id).all()]
     if not user_profile_ids:
         return []
-    return db.query(Post).filter(Post.profile_id.in_(user_profile_ids)).order_by(Post.created_at.desc()).limit(limit).all()
+    cutoff = datetime.utcnow() - timedelta(hours=24)
+    return db.query(Post).filter(
+        Post.profile_id.in_(user_profile_ids),
+        or_(
+            Post.post_timestamp >= cutoff,
+            and_(Post.post_timestamp.is_(None), Post.created_at >= cutoff)
+        )
+    ).order_by(Post.created_at.desc()).limit(limit).all()
 
 
 @app.post("/trigger-job")
